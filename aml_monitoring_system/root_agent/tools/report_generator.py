@@ -86,7 +86,7 @@ def get_customer_info(client, customer_id):
             "name": row.customer_name,
             "phone": row.phone,
             "email": row.email,
-            "risk_score": float(row.risk_score) if row.risk_score is not None else 0.0
+            "risk_score": int(row.risk_score) if row.risk_score is not None else 0  # Changed to int
         }
     
     return None
@@ -105,16 +105,16 @@ def get_suspicious_activities(client, customer_id):
     # Query for large amount transactions
     large_amount_query = """
         SELECT 
-            customer_id,
-            account_no,
-            location_of_account,
-            transaction_date,
-            transaction_type,
+            customer_id_sender AS customer_id,
+            sender_id_account_no AS account_no,
+            sender_location AS location_of_account,
+            time AS transaction_date,
+            payment_type AS transaction_type,
             amount
         FROM 
             `amlproject-458804.aml_data.transactions`
         WHERE 
-            customer_id = @customer_id
+            customer_id_sender = @customer_id
             AND amount > 5000.00
     """
     large_amount_config = bigquery.QueryJobConfig(
@@ -137,18 +137,18 @@ def get_suspicious_activities(client, customer_id):
             "amount": row.amount
         })
     
-    # Query for frequent small transactions
+    # Query for frequent small transactions - FIXED
     frequent_small_query = """
         WITH SmallTransactions AS (
             SELECT 
-                customer_id,
-                account_no,
-                transaction_date,
+                customer_id_sender AS customer_id,
+                sender_id_account_no AS account_no,
+                time AS transaction_date,
                 amount
             FROM 
                 `amlproject-458804.aml_data.transactions`
             WHERE 
-                customer_id = @customer_id
+                customer_id_sender = @customer_id
                 AND amount <= 1000.00
         ),
         FrequentTransactions AS (
@@ -188,17 +188,17 @@ def get_suspicious_activities(client, customer_id):
             "time_window": f"{row.first_transaction.isoformat() if hasattr(row.first_transaction, 'isoformat') else str(row.first_transaction)} to {row.last_transaction.isoformat() if hasattr(row.last_transaction, 'isoformat') else str(row.last_transaction)}"
         })
     
-    # Query for multiple location transactions
+    # Query for multiple location transactions - FIXED
     multiple_location_query = """
         WITH CustomerTransactions AS (
             SELECT 
-                customer_id,
-                transaction_date,
-                location_of_account
+                customer_id_sender AS customer_id,
+                time AS transaction_date,
+                sender_location AS location_of_account
             FROM 
                 `amlproject-458804.aml_data.transactions`
             WHERE 
-                customer_id = @customer_id
+                customer_id_sender = @customer_id
         ),
         LocationGroups AS (
             SELECT 

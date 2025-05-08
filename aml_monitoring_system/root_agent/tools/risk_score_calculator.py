@@ -96,6 +96,9 @@ def update_risk_score(customer_id, risk_score):
     # Initialize BigQuery client
     client = bigquery.Client()
     
+    # Convert the risk score to an integer to match the column type
+    risk_score_int = int(risk_score)
+    
     # Update the risk score record
     query = """
         UPDATE `amlproject-458804.aml_data.customers`
@@ -105,7 +108,7 @@ def update_risk_score(customer_id, risk_score):
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id),
-            bigquery.ScalarQueryParameter("risk_score", "FLOAT", risk_score),
+            bigquery.ScalarQueryParameter("risk_score", "INT64", risk_score_int),  # Changed to INT64
         ]
     )
     
@@ -116,7 +119,7 @@ def update_risk_score(customer_id, risk_score):
         return True
     except Exception as e:
         print(f"Error updating risk score: {e}")
-        return False
+        return False  # Return False to indicate the update failed
 
 def check_risk_threshold(customer_id, threshold=50.0):
     """

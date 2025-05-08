@@ -1,8 +1,12 @@
 from google.adk.agents import Agent, SequentialAgent
-from sub_agents.data_collector_agent.agent import data_collector_agent
-from sub_agents.risk_analyzer_agent.agent import risk_analyzer_agent
-from sub_agents.alert_generator_agent.agent import alert_generator_agent
-from sub_agents.report_generator_agent.agent import report_generator_agent
+from root_agent.sub_agents.data_collector_agent.agent import data_collector_agent
+from root_agent.sub_agents.risk_analyzer_agent.agent import risk_analyzer_agent
+from root_agent.sub_agents.alert_generator_agent.agent import alert_generator_agent
+from root_agent.sub_agents.report_generator_agent.agent import report_generator_agent
+import os
+import sys
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
 
 # Create the root agent as a sequential agent that orchestrates the sub-agents
 root_agent = SequentialAgent(

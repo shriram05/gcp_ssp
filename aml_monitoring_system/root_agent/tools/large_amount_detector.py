@@ -1,12 +1,12 @@
 ﻿from google.cloud import bigquery
 
-def detect_large_amount_transactions(customer_id=None, threshold=5000.00):
+def detect_large_amount_transactions(customer_id="", threshold=5000.00):
     """
     Detects transactions with amounts larger than the specified threshold.
     
     Args:
-        customer_id (str, optional): The ID of the customer to check. If None, checks all customers.
-        threshold (float, optional): The amount threshold to consider as suspicious. Default is 5000.00.
+        customer_id (str): The ID of the customer to check. If None, checks all customers.
+        threshold (float): The amount threshold to consider as suspicious. Default is 5000.00.
     
     Returns:
         list: A list of dictionaries containing information about suspicious transactions.

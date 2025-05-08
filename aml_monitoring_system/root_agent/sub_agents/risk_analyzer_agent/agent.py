@@ -2,8 +2,9 @@ from google.adk.agents import Agent
 from google.adk.tools import FunctionTool
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from tools.risk_score_calculator import calculate_risk_score, check_risk_threshold
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(project_root)
+from root_agent.tools.risk_score_calculator import calculate_risk_score, check_risk_threshold
 
 # Create FunctionTools
 risk_calculator_tool = FunctionTool(calculate_risk_score)

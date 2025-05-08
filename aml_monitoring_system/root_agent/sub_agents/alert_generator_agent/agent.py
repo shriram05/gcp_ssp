@@ -1,6 +1,9 @@
 from google.adk.agents import Agent
+from google.adk.tools import FunctionTool
 import os
 import sys
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(project_root)
 
 PROMPT = """
 # Alert Generator Agent

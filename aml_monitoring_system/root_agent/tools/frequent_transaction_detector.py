@@ -1,7 +1,7 @@
 ﻿from google.cloud import bigquery
 from datetime import datetime, timedelta
 
-def detect_frequent_small_transactions(customer_id=None, amount_threshold=1000.00, 
+def detect_frequent_small_transactions(customer_id="", amount_threshold=1000.00, 
                                       count_threshold=5, time_window_hours=24):
     """
     Detects frequent small transactions within a specified time window.

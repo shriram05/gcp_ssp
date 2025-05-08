@@ -2,10 +2,11 @@
 from google.adk.tools import FunctionTool
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-from tools.large_amount_detector import detect_large_amount_transactions
-from tools.frequent_transaction_detector import detect_frequent_small_transactions
-from tools.multiple_location_detector import detect_multiple_location_transactions
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(project_root)
+from root_agent.tools.large_amount_detector import detect_large_amount_transactions
+from root_agent.tools.frequent_transaction_detector import detect_frequent_small_transactions
+from root_agent.tools.multiple_location_detector import detect_multiple_location_transactions
 
 # Create FunctionTools
 large_amount_tool = FunctionTool(detect_large_amount_transactions)
