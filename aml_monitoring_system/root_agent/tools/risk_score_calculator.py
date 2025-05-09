@@ -1,6 +1,7 @@
 ﻿from google.cloud import bigquery
+from typing import Dict,Optional,List
 
-def get_current_risk_score(customer_id):
+def get_current_risk_score(customer_id: str) -> float:
     """
     Retrieves the current risk score for a customer from BigQuery.
     
@@ -36,7 +37,7 @@ def get_current_risk_score(customer_id):
     # Return 0 if no risk score is found
     return 0.0
 
-def calculate_risk_score(suspicious_activities):
+def calculate_risk_score(suspicious_activities: List[Dict[str, str]]) -> Dict[str, float]:
     """
     Calculates a risk score based on suspicious activities.
     
@@ -82,7 +83,7 @@ def calculate_risk_score(suspicious_activities):
         'total_risk_score': total_risk_score
     }
 
-def update_risk_score(customer_id, risk_score):
+def update_risk_score(customer_id: str, risk_score: float) -> bool:
     """
     Updates the risk score for a customer in BigQuery.
     
@@ -121,7 +122,7 @@ def update_risk_score(customer_id, risk_score):
         print(f"Error updating risk score: {e}")
         return False  # Return False to indicate the update failed
 
-def check_risk_threshold(customer_id, threshold=50.0):
+def check_risk_threshold(customer_id: str, threshold: float = 50.0) -> Dict[str, Optional[float]]:
     """
     Checks if a customer's risk score exceeds the specified threshold.
     

@@ -1,6 +1,12 @@
 ﻿from google.cloud import bigquery
+from typing import List, Dict
 
-def detect_multiple_location_transactions(customer_id="", location_threshold=2, time_window_hours=48):
+def detect_multiple_location_transactions(
+    customer_id: str = "",
+    location_threshold: int = 2,
+    time_window_hours: int = 48
+) -> List[Dict]:
+
     """
     Detects transactions from the same customer occurring in multiple different locations 
     within a specified time window.

@@ -7,6 +7,8 @@ sys.path.append(project_root)
 from root_agent.tools.large_amount_detector import detect_large_amount_transactions
 from root_agent.tools.frequent_transaction_detector import detect_frequent_small_transactions
 from root_agent.tools.multiple_location_detector import detect_multiple_location_transactions
+from dotenv import load_dotenv
+load_dotenv()
 
 # Create FunctionTools
 large_amount_tool = FunctionTool(detect_large_amount_transactions)
@@ -16,6 +18,8 @@ multiple_location_tool = FunctionTool(detect_multiple_location_transactions)
 PROMPT = """
 # Data Collector Agent
 You are an autonomous AML (Anti-Money Laundering) data collector agent.
+
+Firstly, before starting the work, initialize the models using the api keys provided. The API keys are given in the environment variables.
 
 Responsibilities:
 1. Collect and analyze financial transaction data to identify suspicious patterns:

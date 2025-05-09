@@ -1,138 +1,186 @@
 import os
 import json
+import asyncio
+import inspect
+from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 from root_agent.agent import root_agent
+from root_agent.context import InvocationContext  # Import the actual context class
 
-def test_aml_agent(customer_id=None):
+def initialize_google_cloud():
     """
-    Tests the AML monitoring agent with a specific customer ID or a sample input.
+    Initialize Google Cloud and Vertex AI services using environment variables.
+    """
+    # Load environment variables from .env file
+    load_dotenv()
+    
+    # Set up Google Cloud credentials
+    credentials_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+    vertex_location = os.environ.get('VERTEX_LOCATION')
+    gemini_api_key = os.environ.get('GEMINI_API_KEY')
+    
+    print(f"Credentials path: {credentials_path}")
+    print(f"Project ID: {project_id}")
+    print(f"Vertex AI location: {vertex_location}")
+    print(f"Gemini API key available: {'Yes' if gemini_api_key else 'No'}")
+    
+    # Ensure credentials file exists
+    if credentials_path and not os.path.isfile(credentials_path):
+        print(f"Warning: Credentials file not found at {credentials_path}")
+    
+    # Initialize Vertex AI if available
+    try:
+        import google.cloud.aiplatform as vertexai
+        vertexai.init(project=project_id, location=vertex_location)
+        print("Successfully initialized Vertex AI")
+    except ImportError:
+        print("Vertex AI module not found. Skipping initialization.")
+    except Exception as e:
+        print(f"Error initializing Vertex AI: {e}")
+    
+    # Initialize Gemini API if available
+    try:
+        if gemini_api_key:
+            import google.generativeai as genai
+            genai.configure(api_key=gemini_api_key)
+            print("Successfully initialized Gemini API")
+    except ImportError:
+        print("Google Generative AI module not found. Skipping initialization.")
+    except Exception as e:
+        print(f"Error initializing Gemini API: {e}")
+    
+    return {
+        "vertexai": vertexai if 'vertexai' in locals() else None,
+        "project": project_id,
+        "location": vertex_location,
+        "api_key": gemini_api_key
+    }
+
+class CustomInvocationContext(InvocationContext):
+    """
+    A custom implementation of InvocationContext that satisfies all required attributes.
+    """
+    def __init__(self, input_text, customer_id, cloud_config=None):
+        self.input = input_text
+        self.customer_id = customer_id
+        self.vertexai = cloud_config.get("vertexai") if cloud_config else None
+        self.project = cloud_config.get("project") if cloud_config else None
+        self.location = cloud_config.get("location") if cloud_config else None
+        self.api_key = cloud_config.get("api_key") if cloud_config else None
+        
+        # Include common attributes that might be needed for branching/flow control
+        self.branch = None
+        self.steps = []
+        self.history = []
+        self.data = {}
+        self.state = {}
+        self.errors = []
+        
+    def model_copy(self, **kwargs):
+        """Required for Pydantic model compatibility"""
+        new_context = CustomInvocationContext(self.input, self.customer_id)
+        # Copy all attributes
+        for k, v in self.__dict__.items():
+            setattr(new_context, k, v)
+        # Apply any updates
+        for k, v in kwargs.items():
+            setattr(new_context, k, v)
+        return new_context
+
+async def run_aml_agent(customer_id=None):
+    """
+    Runs the AML monitoring agent with a specific customer ID.
     
     Args:
         customer_id (str, optional): The customer ID to analyze. If None, will use a default.
+        
+    Returns:
+        Any: The result of the agent execution, or None if execution failed.
     """
-    # Set up credentials
-    credentials_path = os.path.abspath("amlproject-458804-dfd6239cd782.json")
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
-    print(f"Credentials set to: {credentials_path}")
+    # Initialize Google Cloud services
+    cloud_config = initialize_google_cloud()
     
-    # Prepare the input for the agent
+    # Prepare the input for the root agent
     if customer_id:
         test_input = f"Analyze customer {customer_id} for suspicious activities and generate a comprehensive report."
     else:
-        test_input = "Analyze customer C10045 for suspicious activities and generate a comprehensive report."
-    
+        customer_id = "C10045"
+        test_input = f"Analyze customer {customer_id} for suspicious activities and generate a comprehensive report."
+
     print(f"\nRunning AML agent with input: '{test_input}'")
     print("\n" + "="*60)
-    print("STARTING FULL AGENT PIPELINE")
+    print("STARTING ROOT AGENT PIPELINE")
     print("="*60)
+
+    # Create the proper invocation context
+    context = CustomInvocationContext(test_input, customer_id, cloud_config)
     
+    # Run the agent
     try:
-        # SequentialAgent doesn't have a run method, let's use our direct test approach
-        print("\nCalling direct test with tools...")
-        from root_agent.tools.large_amount_detector import detect_large_amount_transactions
-        from root_agent.tools.frequent_transaction_detector import detect_frequent_small_transactions
-        from root_agent.tools.multiple_location_detector import detect_multiple_location_transactions
-        from root_agent.tools.risk_score_calculator import calculate_risk_score, check_risk_threshold, get_current_risk_score
-        from root_agent.tools.report_generator import generate_sar_report
+        results = []
+        print("\nExecuting agent with custom context...")
         
-        # Get the customer ID from the input
-        if not customer_id:
-            customer_id = "C10045"
-        
-        print(f"\nStep 1: Collecting suspicious activities for {customer_id}...")
-        suspicious_activities = []
-        
-        # Detect large amount transactions
-        large_transactions = detect_large_amount_transactions(customer_id=customer_id, threshold=3000.00)
-        print(f"Found {len(large_transactions)} large amount transactions")
-        suspicious_activities.extend(large_transactions)
-        
-        # Detect frequent small transactions
-        frequent_transactions = detect_frequent_small_transactions(
-            customer_id=customer_id,
-            amount_threshold=1000.00,
-            count_threshold=2,
-            time_window_hours=720
-        )
-        print(f"Found {len(frequent_transactions)} frequent small transaction patterns")
-        suspicious_activities.extend(frequent_transactions)
-        
-        # Detect multiple location transactions
-        multiple_locations = detect_multiple_location_transactions(
-            customer_id=customer_id,
-            location_threshold=2,
-            time_window_hours=720
-        )
-        print(f"Found {len(multiple_locations)} multiple location patterns")
-        suspicious_activities.extend(multiple_locations)
-        
-        print(f"Total suspicious activities: {len(suspicious_activities)}")
-        
-        # Calculate risk score
-        print("\nStep 2: Calculating risk score...")
-        current_score = get_current_risk_score(customer_id)
-        print(f"Current risk score: {current_score}")
-        
-        if suspicious_activities:
-            # Calculate new risk score
-            risk_result = calculate_risk_score(suspicious_activities)
-            print(f"Previous risk score: {risk_result['previous_risk_score']}")
-            print(f"Risk increment: {risk_result['risk_increment']}")
-            print(f"New total risk score: {risk_result['total_risk_score']}")
+        # Process async results
+        async for event in root_agent.run_async(context):
+            event_type = type(event).__name__
+            print(f"Received event: {event_type}")
             
-            # Check threshold
-            threshold_check = check_risk_threshold(customer_id)
-            print(f"Threshold exceeded: {threshold_check['threshold_exceeded']}")
-        else:
-            print("No suspicious activities found - risk score remains unchanged")
+            # Store event details based on common event attributes
+            event_data = {}
+            if hasattr(event, "to_dict"):
+                event_data = event.to_dict()
+            elif hasattr(event, "dict"):
+                event_data = event.dict()
+            else:
+                # Try to extract common attributes
+                for attr in ["type", "message", "content", "data", "result"]:
+                    if hasattr(event, attr):
+                        event_data[attr] = getattr(event, attr)
+            
+            results.append(event_data)
+            
+            # Print detailed content for important events
+            if hasattr(event, "content") and event.content:
+                print(f"Content: {event.content[:100]}...")
+            elif hasattr(event, "message") and event.message:
+                print(f"Message: {event.message[:100]}...")
         
-        # Generate report
-        print("\nStep 3: Generating SAR report...")
-        report = generate_sar_report(customer_id)
-        
-        # Format result
-        result = {
-            "customer_id": customer_id,
-            "suspicious_activities": {
-                "large_transactions": len(large_transactions),
-                "frequent_transactions": len(frequent_transactions),
-                "multiple_locations": len(multiple_locations),
-                "total": len(suspicious_activities)
-            },
-            "risk_assessment": {
-                "previous_score": current_score,
-                "risk_increment": risk_result['risk_increment'] if suspicious_activities else 0,
-                "new_score": risk_result['total_risk_score'] if suspicious_activities else current_score,
-                "threshold_exceeded": threshold_check['threshold_exceeded'] if suspicious_activities else False
-            },
-            "report": {
-                "report_id": report['report_id'],
-                "report_date": report['report_date'],
-                "summary": report['summary']
-            }
-        }
-        
-        # Print the result
-        print("\n" + "="*60)
-        print("AGENT PIPELINE COMPLETED")
-        print("="*60)
-        print("\nAnalysis Result:")
-        print(json.dumps(result, indent=2))
-        
+        # Extract final result if available
+        final_result = None
+        if results:
+            # Try to find completion or final result event
+            for event in reversed(results):
+                if event.get("type") in ["completion", "final", "result"]:
+                    final_result = event
+                    break
+            
+            # If no specific final event found, use the last event
+            if not final_result:
+                final_result = results[-1]
+                
+        print("\nAnalysis completed successfully!")
+        return final_result
+    
     except Exception as e:
-        print(f"\nError running agent: {e}")
         import traceback
+        print(f"Error executing agent: {e}")
         traceback.print_exc()
-        
-    print("\n" + "="*60)
-    print("TEST COMPLETED")
-    print("="*60)
+        return None
 
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Test AML monitoring agent")
+    parser = argparse.ArgumentParser(description="Run AML monitoring agent")
     parser.add_argument("--customer_id", help="Specify a customer ID to analyze")
     
     args = parser.parse_args()
     
-    test_aml_agent(args.customer_id)
+    result = asyncio.run(run_aml_agent(args.customer_id))
+    
+    print("\nAnalysis Result:")
+    print(json.dumps(result, indent=2) if result else "No results returned")
+    
+    print("\n" + "="*60)
+    print("EXECUTION COMPLETED")
+    print("="*60)

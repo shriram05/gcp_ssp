@@ -1,20 +1,21 @@
-﻿from google.cloud import bigquery
+﻿from typing import Optional, List, Dict
+from google.cloud import bigquery
+from dotenv import load_dotenv
+load_dotenv()
 
-def detect_large_amount_transactions(customer_id="", threshold=5000.00):
+def detect_large_amount_transactions(customer_id: str = "", threshold: float = 5000.00) -> List[Dict]:
     """
     Detects transactions with amounts larger than the specified threshold.
-    
+
     Args:
-        customer_id (str): The ID of the customer to check. If None, checks all customers.
+        customer_id (str, optional): The ID of the customer to check. If None, checks all customers.
         threshold (float): The amount threshold to consider as suspicious. Default is 5000.00.
-    
+
     Returns:
-        list: A list of dictionaries containing information about suspicious transactions.
+        List[Dict]: A list of dictionaries containing information about suspicious transactions.
     """
-    # Initialize BigQuery client
     client = bigquery.Client()
-    
-    # Construct the query based on whether a specific customer_id is provided
+
     if customer_id:
         query = """
             SELECT 
@@ -55,12 +56,10 @@ def detect_large_amount_transactions(customer_id="", threshold=5000.00):
                 bigquery.ScalarQueryParameter("threshold", "FLOAT", threshold),
             ]
         )
-    
-    # Execute the query
+
     query_job = client.query(query, job_config=job_config)
     results = query_job.result()
-    
-    # Format the results
+
     suspicious_transactions = []
     for row in results:
         suspicious_transactions.append({
@@ -72,5 +71,5 @@ def detect_large_amount_transactions(customer_id="", threshold=5000.00):
             'amount': row.amount,
             'risk_type': 'large_amount'
         })
-    
+
     return suspicious_transactions

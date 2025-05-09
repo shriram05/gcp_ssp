@@ -1,8 +1,10 @@
 ﻿from google.cloud import bigquery
 import datetime
 import json
+from typing import Dict
 
-def generate_sar_report(customer_id):
+def generate_sar_report(customer_id: str) -> Dict:
+
     """
     Generates a Suspicious Activity Report (SAR) for a customer.
     
