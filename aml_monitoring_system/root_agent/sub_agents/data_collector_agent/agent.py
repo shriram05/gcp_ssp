@@ -29,6 +29,7 @@ Responsibilities:
 
 2. When a user provides a customer ID:
    - Analyze that specific customer's transactions for suspicious patterns
+   - Analyze the particular customer as both sender and receiver in the transaction to detect money launderinh.
    - If no customer ID is provided, analyze all customers
 
 3. Format and consolidate all suspicious activity findings:
