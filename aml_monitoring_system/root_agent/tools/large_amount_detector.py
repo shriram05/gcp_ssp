@@ -3,13 +3,13 @@ from google.cloud import bigquery
 from dotenv import load_dotenv
 load_dotenv()
 
-def detect_large_amount_transactions(customer_id: str = "", threshold: float = 5000.00) -> List[Dict]:
+def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1000.00) -> List[Dict]:
     """
     Detects transactions with amounts larger than the specified threshold.
 
     Args:
         customer_id (str, optional): The ID of the customer to check. If None, checks all customers.
-        threshold (float): The amount threshold to consider as suspicious. Default is 5000.00.
+        threshold (float): The amount threshold to consider as suspicious. Default is 1000.00.
 
     Returns:
         List[Dict]: A list of dictionaries containing information about suspicious transactions.
@@ -20,6 +20,7 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 5
         query = """
             SELECT 
                 customer_id_sender,
+                customer_id_receiver,
                 sender_id_account_no,
                 sender_location,
                 time,
@@ -40,7 +41,8 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 5
     else:
         query = """
             SELECT 
-                customer_id_sender, 9'fv;8
+                customer_id_sender, 
+                customer_id_receiver,
                 sender_id_account_no,
                 sender_location,
                 time,
@@ -63,7 +65,8 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 5
     suspicious_transactions = []
     for row in results:
         suspicious_transactions.append({
-            'customer_id': row.customer_id_sender,
+            'customer_id_send': row.customer_id_sender,
+            'customer_id_dest':row.customer_id_receiver,
             'account_no': row.sender_id_account_no,
             'location': row.sender_location,
             'transaction_date': row.time.isoformat(),
