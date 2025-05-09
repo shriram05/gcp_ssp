@@ -4,3 +4,4 @@ venv/
 .venv
 __pycache__/
 amlproject-458804-dfd6239cd782.json
+.env
