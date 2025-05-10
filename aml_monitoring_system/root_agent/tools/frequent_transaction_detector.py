@@ -118,5 +118,6 @@ def detect_frequent_small_transactions(
             'time_window': f"{row.first_transaction} to {row.last_transaction}",
             'risk_type': 'frequent_small_transactions'
         })
-    
+    print("-------------------------frequenttransactiondetails-------------------------------")
+    print(suspicious_patterns)
     return suspicious_patterns

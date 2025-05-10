@@ -1,10 +1,20 @@
 ﻿from google.cloud import bigquery
 import datetime
 import json
-from typing import Dict
+from typing import Dict, List
+import os
+import sys
+
+# Add path to access the tools
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(project_root)
+
+# Import detector tools
+from root_agent.tools.large_amount_detector import detect_large_amount_transactions
+from root_agent.tools.frequent_transaction_detector import detect_frequent_small_transactions
+from root_agent.tools.multiple_location_detector import detect_multiple_location_transactions
 
 def generate_sar_report(customer_id: str) -> Dict:
-
     """
     Generates a Suspicious Activity Report (SAR) for a customer.
     
@@ -22,8 +32,8 @@ def generate_sar_report(customer_id: str) -> Dict:
     if not customer_info:
         return {"error": f"Customer with ID {customer_id} not found."}
     
-    # Get suspicious activities
-    suspicious_activities = get_suspicious_activities(client, customer_id)
+    # Get suspicious activities using detector tools
+    suspicious_activities = get_suspicious_activities(customer_id)
     
     # Generate the report
     report = {
@@ -38,7 +48,7 @@ def generate_sar_report(customer_id: str) -> Dict:
         "summary": generate_summary(customer_info, suspicious_activities)
     }
     
-    # Store the report in BigQuery (if needed, create a sar_reports table first)
+    # Store the report in BigQuery
     try:
         store_report(client, report)
     except Exception as e:
@@ -88,153 +98,61 @@ def get_customer_info(client, customer_id):
             "name": row.customer_name,
             "phone": row.phone,
             "email": row.email,
-            "risk_score": int(row.risk_score) if row.risk_score is not None else 0  # Changed to int
+            "risk_score": int(row.risk_score) if row.risk_score is not None else 0
         }
     
     return None
 
-def get_suspicious_activities(client, customer_id):
+def get_suspicious_activities(customer_id: str) -> Dict:
     """
-    Retrieves suspicious activities for a customer from BigQuery.
+    Uses detector tools to retrieve suspicious activities for a customer.
     
     Args:
-        client (bigquery.Client): The BigQuery client.
         customer_id (str): The ID of the customer.
     
     Returns:
         dict: Dictionary of suspicious activities.
     """
-    # Query for large amount transactions
-    large_amount_query = """
-        SELECT 
-            customer_id_sender AS customer_id,
-            sender_id_account_no AS account_no,
-            sender_location AS location_of_account,
-            time AS transaction_date,
-            payment_type AS transaction_type,
-            amount
-        FROM 
-            `amlproject-458804.aml_data.transactions`
-        WHERE 
-            customer_id_sender = @customer_id
-            AND amount > 5000.00
-    """
-    large_amount_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id),
-        ]
-    )
+    # Use detector tools to get suspicious activities
+    large_transactions = detect_large_amount_transactions(customer_id)
+    frequent_transactions = detect_frequent_small_transactions(customer_id)
+    multiple_locations = detect_multiple_location_transactions(customer_id)
     
-    large_amount_job = client.query(large_amount_query, job_config=large_amount_config)
-    large_amount_results = large_amount_job.result()
-    
+    # Format large amount transactions to include direction
     large_amount_activities = []
-    for row in large_amount_results:
+    for activity in large_transactions:
+        # Determine direction (sent or received)
+        direction = "sent" if activity.get("customer_id_send") == customer_id else "received"
+        
         large_amount_activities.append({
             "type": "large_amount",
-            "account_no": row.account_no,
-            "location": row.location_of_account,
-            "date": row.transaction_date.isoformat() if hasattr(row.transaction_date, 'isoformat') else str(row.transaction_date),
-            "transaction_type": row.transaction_type,
-            "amount": row.amount
+            "account_no": activity.get("account_no", ""),
+            "location": activity.get("location", ""),
+            "date": activity.get("transaction_date", ""),
+            "transaction_type": activity.get("transaction_type", ""),
+            "amount": activity.get("amount", 0),
+            "direction": direction
         })
     
-    # Query for frequent small transactions - FIXED
-    frequent_small_query = """
-        WITH SmallTransactions AS (
-            SELECT 
-                customer_id_sender AS customer_id,
-                sender_id_account_no AS account_no,
-                time AS transaction_date,
-                amount
-            FROM 
-                `amlproject-458804.aml_data.transactions`
-            WHERE 
-                customer_id_sender = @customer_id
-                AND amount <= 1000.00
-        ),
-        FrequentTransactions AS (
-            SELECT 
-                customer_id,
-                account_no,
-                COUNT(*) as transaction_count,
-                SUM(amount) as total_amount,
-                MIN(transaction_date) as first_transaction,
-                MAX(transaction_date) as last_transaction
-            FROM 
-                SmallTransactions
-            GROUP BY 
-                customer_id, account_no
-            HAVING 
-                COUNT(*) >= 5
-                AND TIMESTAMP_DIFF(MAX(transaction_date), MIN(transaction_date), HOUR) <= 24
-        )
-        SELECT * FROM FrequentTransactions
-    """
-    frequent_small_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id),
-        ]
-    )
-    
-    frequent_small_job = client.query(frequent_small_query, job_config=frequent_small_config)
-    frequent_small_results = frequent_small_job.result()
-    
+    # Format frequent small transactions
     frequent_small_activities = []
-    for row in frequent_small_results:
+    for activity in frequent_transactions:
         frequent_small_activities.append({
             "type": "frequent_small_transactions",
-            "account_no": row.account_no,
-            "transaction_count": row.transaction_count,
-            "total_amount": row.total_amount,
-            "time_window": f"{row.first_transaction.isoformat() if hasattr(row.first_transaction, 'isoformat') else str(row.first_transaction)} to {row.last_transaction.isoformat() if hasattr(row.last_transaction, 'isoformat') else str(row.last_transaction)}"
+            "account_no": activity.get("account_no", ""),
+            "transaction_count": activity.get("transaction_count", 0),
+            "total_amount": activity.get("total_amount", 0),
+            "time_window": activity.get("time_window", "")
         })
     
-    # Query for multiple location transactions - FIXED
-    multiple_location_query = """
-        WITH CustomerTransactions AS (
-            SELECT 
-                customer_id_sender AS customer_id,
-                time AS transaction_date,
-                sender_location AS location_of_account
-            FROM 
-                `amlproject-458804.aml_data.transactions`
-            WHERE 
-                customer_id_sender = @customer_id
-        ),
-        LocationGroups AS (
-            SELECT 
-                customer_id,
-                COUNT(DISTINCT location_of_account) as location_count,
-                MIN(transaction_date) as first_transaction,
-                MAX(transaction_date) as last_transaction,
-                STRING_AGG(DISTINCT location_of_account, ', ') as locations
-            FROM 
-                CustomerTransactions
-            GROUP BY 
-                customer_id
-            HAVING 
-                COUNT(DISTINCT location_of_account) >= 2
-                AND TIMESTAMP_DIFF(MAX(transaction_date), MIN(transaction_date), HOUR) <= 48
-        )
-        SELECT * FROM LocationGroups
-    """
-    multiple_location_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id),
-        ]
-    )
-    
-    multiple_location_job = client.query(multiple_location_query, job_config=multiple_location_config)
-    multiple_location_results = multiple_location_job.result()
-    
+    # Format multiple location transactions
     multiple_location_activities = []
-    for row in multiple_location_results:
+    for activity in multiple_locations:
         multiple_location_activities.append({
             "type": "multiple_locations",
-            "location_count": row.location_count,
-            "locations": row.locations,
-            "time_window": f"{row.first_transaction.isoformat() if hasattr(row.first_transaction, 'isoformat') else str(row.first_transaction)} to {row.last_transaction.isoformat() if hasattr(row.last_transaction, 'isoformat') else str(row.last_transaction)}"
+            "location_count": activity.get("location_count", 0),
+            "locations": activity.get("locations", ""),
+            "time_window": activity.get("time_window", "")
         })
     
     # Combine all suspicious activities
@@ -262,15 +180,48 @@ def generate_summary(customer_info, suspicious_activities):
     summary = f"Customer {customer_info['name']} (ID: {customer_info['customer_id']}) "
     summary += f"has a risk score of {customer_info['risk_score']}. "
     
+    # Detailed information about large amount transactions
     if large_amount_count > 0:
-        summary += f"Found {large_amount_count} large amount transactions. "
+        summary += f"Found {large_amount_count} large amount transactions: "
+        transaction_details = []
+        
+        for activity in suspicious_activities["large_amount_transactions"]:
+            # Determine if this was a sent or received transaction
+            direction = activity.get("direction", "sent")  # Default to "sent" if not specified
+            transaction_date = activity.get("date", "").split("T")[0] if "T" in activity.get("date", "") else activity.get("date", "")
+            
+            if direction == "sent":
+                detail = f"${activity.get('amount', 0):.2f} sent on {transaction_date} from {activity.get('location', 'Unknown')}"
+            else:
+                detail = f"${activity.get('amount', 0):.2f} received on {transaction_date} from {activity.get('location', 'Unknown')}"
+            
+            transaction_details.append(detail)
+        
+        summary += ", ".join(transaction_details) + ". "
     
+    # Detailed information about frequent small transactions
     if frequent_small_count > 0:
-        summary += f"Found {frequent_small_count} instances of frequent small transactions. "
+        summary += f"Found {frequent_small_count} instances of frequent small transactions: "
+        transaction_details = []
+        
+        for activity in suspicious_activities["frequent_small_transactions"]:
+            detail = f"{activity.get('transaction_count', 0)} transactions totaling ${activity.get('total_amount', 0):.2f} during {activity.get('time_window', 'Unknown')}"
+            transaction_details.append(detail)
+        
+        summary += ", ".join(transaction_details) + ". "
     
+    # Detailed information about multiple location transactions
     if multiple_location_count > 0:
-        summary += f"Found {multiple_location_count} instances of transactions from multiple locations. "
+        summary += f"Found {multiple_location_count} instances of transactions from multiple locations: "
+        transaction_details = []
+        
+        for activity in suspicious_activities["multiple_location_transactions"]:
+            detail = f"{activity.get('location_count', 0)} different locations ({activity.get('locations', 'Unknown')}) during {activity.get('time_window', 'Unknown')}"
+            transaction_details.append(detail)
+        
+        summary += ", ".join(transaction_details) + ". "
     
+    # Overall conclusion
     if large_amount_count == 0 and frequent_small_count == 0 and multiple_location_count == 0:
         summary += "No suspicious activities were detected."
     else:

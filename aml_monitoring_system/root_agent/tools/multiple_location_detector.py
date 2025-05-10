@@ -107,5 +107,6 @@ def detect_multiple_location_transactions(
             'time_window': f"{row.first_transaction} to {row.last_transaction}",
             'risk_type': 'multiple_locations'
         })
-    
+    print("-------------------------multiplelocationdetails-------------------------------")
+    print(suspicious_patterns)
     return suspicious_patterns

@@ -47,11 +47,13 @@ def calculate_risk_score(suspicious_activities: List[Dict[str, str]]) -> Dict[st
     Returns:
         dict: A dictionary containing customer_id and calculated risk score.
     """
+    print("hoooooooooo")
+    print(suspicious_activities)
     if not suspicious_activities:
         return {'customer_id': None, 'risk_score': 0}
     
     # Get the customer_id from the first activity
-    customer_id = suspicious_activities[0]['customer_id']
+    customer_id = suspicious_activities[0]['original_id']
     
     # Get the current risk score
     current_risk_score = get_current_risk_score(customer_id)

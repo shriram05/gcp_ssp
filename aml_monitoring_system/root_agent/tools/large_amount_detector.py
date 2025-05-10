@@ -15,7 +15,7 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1
         List[Dict]: A list of dictionaries containing information about suspicious transactions.
     """
     client = bigquery.Client()
-
+    original_id=customer_id
     if customer_id:
         query = """
             SELECT 
@@ -72,8 +72,9 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1
             'transaction_date': row.time.isoformat(),
             'transaction_type': row.payment_type,
             'amount': row.amount,
-            'risk_type': 'large_amount'
+            'risk_type': 'large_amount',
+            'original_id':original_id
         })
-    print("speakkkkkkkkkkkkkkkkkkkkkkk")
+    print("-----------------------largeamounttransactionsdetails---------------------------")
     print(suspicious_transactions)
     return suspicious_transactions
