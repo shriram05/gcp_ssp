@@ -1,7 +1,7 @@
 ﻿from google.cloud import bigquery
 import datetime
 import json
-from typing import Dict, List
+from typing import Dict, List, Any, Optional
 import os
 import sys
 
@@ -14,16 +14,20 @@ from root_agent.tools.large_amount_detector import detect_large_amount_transacti
 from root_agent.tools.frequent_transaction_detector import detect_frequent_small_transactions
 from root_agent.tools.multiple_location_detector import detect_multiple_location_transactions
 
-def generate_sar_report(customer_id: str) -> Dict:
+def generate_sar_report(customer_id: str, suspicious_activities: Optional[List[Dict[str, Any]]] = None) -> Dict:
     """
     Generates a Suspicious Activity Report (SAR) for a customer.
     
     Args:
         customer_id (str): The ID of the customer.
+        suspicious_activities (List[Dict], optional): List of pre-detected suspicious activities.
+            If None, they will be detected using the detector tools.
     
     Returns:
         dict: A dictionary containing the SAR report data.
     """
+    print("------------generate sar report--------------")
+    
     # Initialize BigQuery client
     client = bigquery.Client()
     
@@ -32,8 +36,13 @@ def generate_sar_report(customer_id: str) -> Dict:
     if not customer_info:
         return {"error": f"Customer with ID {customer_id} not found."}
     
-    # Get suspicious activities using detector tools
-    suspicious_activities = get_suspicious_activities(customer_id)
+    # Get suspicious activities - either use provided activities or detect them
+    formatted_activities = {}
+    if suspicious_activities:
+        print(suspicious_activities)
+        formatted_activities = format_suspicious_activities(customer_id, suspicious_activities)
+    # else:
+    #     formatted_activities = get_suspicious_activities(customer_id)
     
     # Generate the report
     report = {
@@ -44,8 +53,8 @@ def generate_sar_report(customer_id: str) -> Dict:
             "risk_score": customer_info["risk_score"],
             "assessment_date": datetime.datetime.now().isoformat()
         },
-        "suspicious_activities": suspicious_activities,
-        "summary": generate_summary(customer_info, suspicious_activities)
+        "suspicious_activities": formatted_activities,
+        "summary": generate_summary(customer_info, formatted_activities)
     }
     
     # Store the report in BigQuery
@@ -55,6 +64,59 @@ def generate_sar_report(customer_id: str) -> Dict:
         print(f"Warning: Could not store report - {e}")
     
     return report
+
+def format_suspicious_activities(customer_id: str, activities: List[Dict[str, Any]]) -> Dict:
+    """
+    Formats a list of suspicious activities into the expected structure.
+    
+    Args:
+        customer_id (str): The ID of the customer.
+        activities (List[Dict]): List of suspicious activities.
+    
+    Returns:
+        Dict: Formatted suspicious activities.
+    """
+    large_amount_activities = []
+    frequent_small_activities = []
+    multiple_location_activities = []
+    
+    for activity in activities:
+        risk_type = activity.get("risk_type", "")
+        
+        if risk_type == "large_amount":
+            # Determine direction (sent or received)
+            direction = "sent" if activity.get("customer_id_send") == customer_id else "received"
+            
+            large_amount_activities.append({
+                "type": "large_amount",
+                "account_no": activity.get("account_no", ""),
+                "location": activity.get("location", ""),
+                "date": activity.get("transaction_date", ""),
+                "transaction_type": activity.get("transaction_type", ""),
+                "amount": activity.get("amount", 0),
+                "direction": direction
+            })
+        elif risk_type == "frequent_small_transactions":
+            frequent_small_activities.append({
+                "type": "frequent_small_transactions",
+                "account_no": activity.get("account_no", ""),
+                "transaction_count": activity.get("transaction_count", 0),
+                "total_amount": activity.get("total_amount", 0),
+                "time_window": activity.get("time_window", "")
+            })
+        elif risk_type == "multiple_locations":
+            multiple_location_activities.append({
+                "type": "multiple_locations",
+                "location_count": activity.get("location_count", 0),
+                "locations": activity.get("locations", ""),
+                "time_window": activity.get("time_window", "")
+            })
+    
+    return {
+        "large_amount_transactions": large_amount_activities,
+        "frequent_small_transactions": frequent_small_activities,
+        "multiple_location_transactions": multiple_location_activities
+    }
 
 def get_customer_info(client, customer_id):
     """
@@ -103,64 +165,71 @@ def get_customer_info(client, customer_id):
     
     return None
 
-def get_suspicious_activities(customer_id: str) -> Dict:
-    """
-    Uses detector tools to retrieve suspicious activities for a customer.
+# def get_suspicious_activities(customer_id: str) -> Dict:
+#     """
+#     Uses detector tools to retrieve suspicious activities for a customer.
     
-    Args:
-        customer_id (str): The ID of the customer.
+#     Args:
+#         customer_id (str): The ID of the customer.
     
-    Returns:
-        dict: Dictionary of suspicious activities.
-    """
-    # Use detector tools to get suspicious activities
-    large_transactions = detect_large_amount_transactions(customer_id)
-    frequent_transactions = detect_frequent_small_transactions(customer_id)
-    multiple_locations = detect_multiple_location_transactions(customer_id)
+#     Returns:
+#         dict: Dictionary of suspicious activities.
+#     """
+#     # Use detector tools to get suspicious activities
+#     large_transactions = detect_large_amount_transactions(customer_id)
+#     frequent_transactions = detect_frequent_small_transactions(customer_id)
+#     multiple_locations = detect_multiple_location_transactions(customer_id)
     
-    # Format large amount transactions to include direction
-    large_amount_activities = []
-    for activity in large_transactions:
-        # Determine direction (sent or received)
-        direction = "sent" if activity.get("customer_id_send") == customer_id else "received"
+#     print("-----------------------largeamounttransactionsdetails---------------------------")
+#     print(large_transactions)
+#     print("-------------------------frequenttransactiondetails-------------------------------")
+#     print(frequent_transactions)
+#     print("-------------------------multiplelocationdetails-------------------------------")
+#     print(multiple_locations)
+    
+#     # Format large amount transactions to include direction
+#     large_amount_activities = []
+#     for activity in large_transactions:
+#         # Determine direction (sent or received)
+#         direction = "sent" if activity.get("customer_id_send") == customer_id else "received"
         
-        large_amount_activities.append({
-            "type": "large_amount",
-            "account_no": activity.get("account_no", ""),
-            "location": activity.get("location", ""),
-            "date": activity.get("transaction_date", ""),
-            "transaction_type": activity.get("transaction_type", ""),
-            "amount": activity.get("amount", 0),
-            "direction": direction
-        })
+#         large_amount_activities.append({
+#             "type": "large_amount",
+#             "account_no": activity.get("account_no", ""),
+#             "location": activity.get("location", ""),
+#             "date": activity.get("transaction_date", ""),
+#             "transaction_type": activity.get("transaction_type", ""),
+#             "amount": activity.get("amount", 0),
+#             "direction": direction
+#         })
     
-    # Format frequent small transactions
-    frequent_small_activities = []
-    for activity in frequent_transactions:
-        frequent_small_activities.append({
-            "type": "frequent_small_transactions",
-            "account_no": activity.get("account_no", ""),
-            "transaction_count": activity.get("transaction_count", 0),
-            "total_amount": activity.get("total_amount", 0),
-            "time_window": activity.get("time_window", "")
-        })
+#     # Format frequent small transactions
+#     frequent_small_activities = []
+#     for activity in frequent_transactions:
+#         frequent_small_activities.append({
+#             "type": "frequent_small_transactions",
+#             "account_no": activity.get("account_no", ""),
+#             "transaction_count": activity.get("transaction_count", 0),
+#             "total_amount": activity.get("total_amount", 0),
+#             "time_window": activity.get("time_window", "")
+#         })
     
-    # Format multiple location transactions
-    multiple_location_activities = []
-    for activity in multiple_locations:
-        multiple_location_activities.append({
-            "type": "multiple_locations",
-            "location_count": activity.get("location_count", 0),
-            "locations": activity.get("locations", ""),
-            "time_window": activity.get("time_window", "")
-        })
+#     # Format multiple location transactions
+#     multiple_location_activities = []
+#     for activity in multiple_locations:
+#         multiple_location_activities.append({
+#             "type": "multiple_locations",
+#             "location_count": activity.get("location_count", 0),
+#             "locations": activity.get("locations", ""),
+#             "time_window": activity.get("time_window", "")
+#         })
     
-    # Combine all suspicious activities
-    return {
-        "large_amount_transactions": large_amount_activities,
-        "frequent_small_transactions": frequent_small_activities,
-        "multiple_location_transactions": multiple_location_activities
-    }
+#     # Combine all suspicious activities
+#     return {
+#         "large_amount_transactions": large_amount_activities,
+#         "frequent_small_transactions": frequent_small_activities,
+#         "multiple_location_transactions": multiple_location_activities
+#     }
 
 def generate_summary(customer_info, suspicious_activities):
     """
