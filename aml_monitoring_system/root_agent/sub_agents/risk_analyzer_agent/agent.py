@@ -34,7 +34,7 @@ Always maintain accurate records and ensure all risk scores are properly calcula
 
 risk_analyzer_agent = Agent(
     name="risk_analyzer_agent",
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.0-flash",
     description="Calculates and analyzes risk scores based on suspicious activities.",
     tools=[risk_calculator_tool, threshold_checker_tool],
     instruction=PROMPT

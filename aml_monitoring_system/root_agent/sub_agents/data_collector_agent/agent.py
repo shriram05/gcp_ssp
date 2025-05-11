@@ -52,7 +52,7 @@ Follow all instructions exactly. Any deviation from the above data handling requ
 
 data_collector_agent = Agent(
     name="data_collector_agent",
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.0-flash",
     description="Collects and analyzes transaction data to identify suspicious patterns.",
     tools=[large_amount_tool, frequent_transaction_tool, multiple_location_tool],
     instruction=PROMPT

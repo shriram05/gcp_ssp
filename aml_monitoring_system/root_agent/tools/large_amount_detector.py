@@ -20,9 +20,12 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1
         query = """
             SELECT 
                 customer_id_sender,
+                transaction_id,
                 customer_id_receiver,
                 sender_id_account_no,
+                recipient_id_account_no,
                 sender_location,
+                recipient_location,
                 time,
                 payment_type,
                 amount
@@ -67,8 +70,11 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1
         suspicious_transactions.append({
             'customer_id_send': row.customer_id_sender,
             'customer_id_dest':row.customer_id_receiver,
-            'account_no': row.sender_id_account_no,
-            'location': row.sender_location,
+            'account_no_send': row.sender_id_account_no,
+            'account_no_dest': row.recipient_id_account_no,
+            'location_sender': row.sender_location,
+            'location_receiver':row.recipient_location,
+            'transaction_id':row.transaction_id,
             'transaction_date': row.time.isoformat(),
             'transaction_type': row.payment_type,
             'amount': row.amount,

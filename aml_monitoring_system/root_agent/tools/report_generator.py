@@ -89,7 +89,8 @@ def format_suspicious_activities(customer_id: str, activities: List[Dict[str, An
             
             large_amount_activities.append({
                 "type": "large_amount",
-                "account_no": activity.get("account_no", ""),
+                "sender_account_no": activity.get("account_no_send", ""),
+                "destination_account_no": activity.get("account_no_dest", ""),
                 "location": activity.get("location", ""),
                 "date": activity.get("transaction_date", ""),
                 "transaction_type": activity.get("transaction_type", ""),
@@ -99,7 +100,8 @@ def format_suspicious_activities(customer_id: str, activities: List[Dict[str, An
         elif risk_type == "frequent_small_transactions":
             frequent_small_activities.append({
                 "type": "frequent_small_transactions",
-                "account_no": activity.get("account_no", ""),
+                "sender_account_no": activity.get("account_no_send", ""),
+                "destination_account_no": activity.get("account_no_dest", ""),
                 "transaction_count": activity.get("transaction_count", 0),
                 "total_amount": activity.get("total_amount", 0),
                 "time_window": activity.get("time_window", "")
@@ -107,6 +109,8 @@ def format_suspicious_activities(customer_id: str, activities: List[Dict[str, An
         elif risk_type == "multiple_locations":
             multiple_location_activities.append({
                 "type": "multiple_locations",
+                "sender_account_no": activity.get("account_no_send", ""),
+                "destination_account_no": activity.get("account_no_dest", ""),
                 "location_count": activity.get("location_count", 0),
                 "locations": activity.get("locations", ""),
                 "time_window": activity.get("time_window", "")
