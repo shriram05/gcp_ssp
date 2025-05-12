@@ -80,7 +80,8 @@ def detect_multiple_location_transactions(
           transaction_ids,
           locations,
           start_time,
-          end_time
+          end_time,
+          location_count
         FROM window_details
         WHERE txn_count >= @min_txn_count AND location_count >= @location_threshold
         ORDER BY customer_id, start_time
@@ -100,9 +101,7 @@ def detect_multiple_location_transactions(
     for row in results:
         suspicious_patterns.append({
             "customer_id": row.customer_id,
-            "transaction_ids": row.transaction_ids,
-            "locations": row.locations,
-            'risk_type': 'multiple_locations',
+            "location_count": row.location_count,
             "start_time": row.start_time.isoformat() if row.start_time else None,
             "end_time": row.end_time.isoformat() if row.end_time else None,
         })

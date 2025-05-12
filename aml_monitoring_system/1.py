@@ -44,8 +44,9 @@ ORDER BY large_transaction_count DESC;
     for row in results:
         suspicious_transactions.append({
             'customer_id': row.customer_id,
-            'large_transaction_count':row.large_transaction_count
+            'count':row.large_transaction_count
         })
     print("-----------------------largeamounttransactionsdetails---------------------------")
     print(suspicious_transactions)
     return suspicious_transactions
+detect_large_amount_transactions()

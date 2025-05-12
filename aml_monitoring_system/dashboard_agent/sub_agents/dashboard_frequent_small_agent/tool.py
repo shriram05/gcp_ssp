@@ -193,8 +193,6 @@ def detect_frequent_small_transactions(
             'total_amount': row.total_amount,
             'first_transaction_date': row.first_transaction.isoformat(),
             'last_transaction_date': row.last_transaction.isoformat(),
-            'time_window_hours': time_window_hours,
-            'risk_type': 'frequent_small_transactions',
         }
         
         # Extract the transactions array

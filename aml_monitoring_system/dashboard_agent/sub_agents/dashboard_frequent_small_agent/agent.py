@@ -30,9 +30,9 @@ You must invoke the `frequent_transaction_tool` with default parameters unless o
 
 ## Output Format Requirements (STRICT)
 
-- Output must be the **exact response** returned by the tool.
-- DO NOT alter, summarize, or omit any field.
-- Wrap the **entire tool output** in a code block or valid JSON block.
+- Render the output in a **table format** using the following columns:
+- `Customer ID`, `Start Time`, `End Time`, ` Transaction Count`, `Total Amount`
+- Format the table clearly with headers and rows.
 """
 dashboard_frequent_small_agent = Agent(
     name="dashboard_frequent_small_agent",

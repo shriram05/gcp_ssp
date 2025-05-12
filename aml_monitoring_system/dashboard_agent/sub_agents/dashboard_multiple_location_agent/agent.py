@@ -40,11 +40,13 @@ Use the tool `multiple_location_tool` to identify customers who:
 
 ## Output Format
 
-- Wrap the tool’s raw output in a JSON code block to preserve structure.
-- If there are multiple suspicious patterns, return the **entire list** in JSON format, maintaining the full field structure of each item.
+- Render the output in a **table format** using the following columns:
+  - `Customer ID`, `Start Time`, `End Time`, `Location Count`
+- Format the table clearly with headers and rows.
 
 Strictly follow the instructions. Any deviation from the above data handling or output structure is incorrect.
 """
+
 dashboard_multiple_location_agent = Agent(
     name="dashboard_multiple_location_agent",
     model="gemini-2.0-flash",

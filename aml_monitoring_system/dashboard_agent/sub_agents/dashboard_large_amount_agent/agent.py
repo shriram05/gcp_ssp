@@ -36,10 +36,10 @@ Without any input from the user, your task is to retrieve and analyze all transa
 
 ## Output Format
 
-- Return a **JSON list**, where each item represents a customer and includes:
-  - `customer_id`
-  - `large_transaction_count`
-- Maintain JSON structure — DO NOT wrap in text, explanations, or markdown.
+- Render the output in a **table format** using the following columns:
+  - `Customer ID`, `Transaction Count`
+- Format the table clearly with headers and rows.
+
 
 Strictly follow these instructions.
 """
