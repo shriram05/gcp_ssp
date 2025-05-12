@@ -4,7 +4,7 @@ import os
 import sys
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(project_root)
-from tool import detect_multiple_location_transactions
+from .tool import detect_multiple_location_transactions
 from dotenv import load_dotenv
 load_dotenv()
 

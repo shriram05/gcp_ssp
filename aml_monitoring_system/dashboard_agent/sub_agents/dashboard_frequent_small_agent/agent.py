@@ -4,7 +4,7 @@ import os
 import sys
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(project_root)
-from tool import detect_frequent_small_transactions
+from .tool import detect_frequent_small_transactions
 from dotenv import load_dotenv
 load_dotenv()
 frequent_transaction_tool = FunctionTool(detect_frequent_small_transactions)
