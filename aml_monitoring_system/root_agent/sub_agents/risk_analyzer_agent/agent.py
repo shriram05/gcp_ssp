@@ -38,5 +38,5 @@ risk_analyzer_agent = Agent(
     description="Calculates and analyzes risk scores based on suspicious activities.",
     tools=[risk_calculator_tool, threshold_checker_tool],
     instruction=PROMPT,
-    output_key="riskanalyzeroutput"
+    output_key="datacollectoroutput"
 )

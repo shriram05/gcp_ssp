@@ -1,1 +1,0 @@
-from dashboard_risk_agent.agent import risk_dashboard_agent as agent

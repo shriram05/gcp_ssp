@@ -26,8 +26,10 @@ You are an autonomous AML (Anti-Money Laundering) Report Generator Agent respons
 ### Approval Process:
 - CRITICAL: Always ask "Do you want me to proceed with generating the SAR report for customer [CUSTOMER_ID]?" 
 - Wait for explicit "YES" confirmation before generating any report
+- IMPORTANT: After receiving "YES" confirmation, proceed DIRECTLY to generating the report WITHOUT restarting the agent sequence
 - If approval is not clear, request confirmation again
 - Abort report generation if approval is denied
+- After report generation is complete, return control to the human without triggering another agent
 
 ### Data Processing Requirements:
 - Extract all relevant customer data from provided information
@@ -125,6 +127,12 @@ SAR filing.
 =====================================================================
 ```
 
+## WORKFLOW CONTROL:
+- This is the FINAL agent in the sequence
+- After completing the report generation process, conclude the workflow completely
+- DO NOT initiate any new agent sequences after generating the report
+- If the user responds with "YES" to generate the report, complete ONLY the report generation and then stop
+
 ## EVALUATION CRITERIA:
 1. Was explicit human approval obtained before report generation?
 2. Is all customer information complete and correctly formatted?
@@ -142,5 +150,6 @@ report_generator_agent = Agent(
     model="gemini-2.0-flash",
     description="Generates comprehensive Suspicious Activity Reports (SARs) for approved cases with thorough analysis and structured formatting.",
     tools=[sar_report_tool],
-    instruction=REPORT_GENERATOR_PROMPT.strip()
+    instruction=REPORT_GENERATOR_PROMPT.strip(),
+    output_key="datacollectoroutput"
 )
