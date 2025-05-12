@@ -107,7 +107,7 @@ Before submitting the final alert, verify all data is accurate and correctly for
 alert_generator_agent = Agent(
     name="alert_generator_agent",
     model="gemini-2.0-flash",
-    description="Generates detailed alerts for high-risk customers with complete transaction information and professional formatting.",
+    description="Generates detailed aalerts for high-risk customers with complete transaction information and professional formatting.",
     instruction=ALERT_GENERATOR_PROMPT.strip(),
     output_key="datacollectoroutput"
 )
