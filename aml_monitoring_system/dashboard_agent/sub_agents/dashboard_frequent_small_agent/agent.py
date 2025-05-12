@@ -7,6 +7,7 @@ sys.path.append(project_root)
 from .tool import detect_frequent_small_transactions
 from dotenv import load_dotenv
 load_dotenv()
+
 frequent_transaction_tool = FunctionTool(detect_frequent_small_transactions)
 PROMPT = """
 # Frequent Small Transaction Detector Agent
@@ -31,9 +32,10 @@ You must invoke the `frequent_transaction_tool` with default parameters unless o
 ## Output Format Requirements (STRICT)
 
 - Render the output in a **table format** using the following columns:
-- `Customer ID`, `Start Time`, `End Time`, ` Transaction Count`, `Total Amount`
+  - `Customer ID`, `Customer Name`, `Email`, `Start Time`, `End Time`, `Transaction Count`, `Total Amount`
 - Format the table clearly with headers and rows.
 """
+
 dashboard_frequent_small_agent = Agent(
     name="dashboard_frequent_small_agent",
     model="gemini-2.0-flash",

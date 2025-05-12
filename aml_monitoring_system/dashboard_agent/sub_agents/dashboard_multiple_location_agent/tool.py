@@ -2,14 +2,16 @@ from google.cloud import bigquery
 from typing import List, Dict
 from dotenv import load_dotenv
 load_dotenv()
+
 def detect_multiple_location_transactions(
     min_txn_count: int = 3,
     location_threshold: int = 2,  # Minimum different locations to be considered
     time_window_hours: int = 48
 ) -> List[Dict]:
     """
-    Detects windows of transactions  where there are at least `min_txn_count` transactions in non-overlapping time windows of `time_window_hours`.
-    Returns only the columns: customer_id, transaction_ids, locations, start_time, end_time.
+    Detects windows of transactions where there are at least `min_txn_count` transactions 
+    in non-overlapping time windows of `time_window_hours`.
+    Returns customer details including name and email along with transaction data.
     """
     client = bigquery.Client()
     query = """
@@ -74,17 +76,34 @@ def detect_multiple_location_transactions(
             COUNT(DISTINCT location) AS location_count
           FROM window_ids
           GROUP BY customer_id, window_id
+        ),
+        suspicious_windows AS (
+          SELECT
+            customer_id,
+            transaction_ids,
+            locations,
+            start_time,
+            end_time,
+            location_count
+          FROM window_details
+          WHERE txn_count >= @min_txn_count AND location_count >= @location_threshold
         )
+        
         SELECT
-          customer_id,
-          transaction_ids,
-          locations,
-          start_time,
-          end_time,
-          location_count
-        FROM window_details
-        WHERE txn_count >= @min_txn_count AND location_count >= @location_threshold
-        ORDER BY customer_id, start_time
+          sw.customer_id,
+          c.customer_name,
+          c.email,
+          sw.transaction_ids,
+          sw.locations,
+          sw.start_time,
+          sw.end_time,
+          sw.location_count
+        FROM suspicious_windows sw
+        JOIN (
+          SELECT DISTINCT customer_id, customer_name, email
+          FROM `amlproject-458804.aml_data.customers`
+        ) c ON sw.customer_id = c.customer_id
+        ORDER BY sw.customer_id, sw.start_time
         """
     job_config = bigquery.QueryJobConfig(
             query_parameters=[
@@ -101,6 +120,8 @@ def detect_multiple_location_transactions(
     for row in results:
         suspicious_patterns.append({
             "customer_id": row.customer_id,
+            "customer_name": row.customer_name,
+            "email": row.email,
             "location_count": row.location_count,
             "start_time": row.start_time.isoformat() if row.start_time else None,
             "end_time": row.end_time.isoformat() if row.end_time else None,

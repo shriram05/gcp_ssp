@@ -2,7 +2,6 @@ from google.cloud import bigquery
 from typing import List, Dict
 from dotenv import load_dotenv
 load_dotenv()
-
 def detect_frequent_small_transactions(
     amount_threshold: float = 5000.00,
     count_threshold: int = 3,
@@ -10,6 +9,7 @@ def detect_frequent_small_transactions(
 ) -> List[Dict]:
     """
     Detects frequent small transactions within a specified time window.
+    Includes customer name and email information.
     
     Args:
         amount_threshold (float, optional): The maximum amount to consider as a small transaction.
@@ -22,7 +22,7 @@ def detect_frequent_small_transactions(
     # Initialize BigQuery client
     client = bigquery.Client()
     
-    # For all customers version of the query
+    # For all customers version of the query with customer details
     query = """
         WITH AllTransactions AS (
             SELECT 
@@ -157,18 +157,34 @@ def detect_frequent_small_transactions(
                 LOGICAL_AND(is_first_occurrence) AS all_unique_transactions
             FROM CustomerFirstOccurrence
             GROUP BY customer_id, window_start, window_end, transaction_count, total_amount, transactions
+        ),
+        SuspiciousPatterns AS (
+            SELECT
+                customer_id,
+                transaction_count,
+                total_amount,
+                window_start as first_transaction_time,
+                (SELECT MIN(time) FROM UNNEST(transactions)) as first_transaction,
+                (SELECT MAX(time) FROM UNNEST(transactions)) as last_transaction,
+                transactions
+            FROM CustomerNonOverlappingWindows
+            WHERE all_unique_transactions = TRUE
         )
         SELECT
-            customer_id,
-            transaction_count,
-            total_amount,
-            window_start as first_transaction_time,
-            (SELECT MIN(time) FROM UNNEST(transactions)) as first_transaction,
-            (SELECT MAX(time) FROM UNNEST(transactions)) as last_transaction,
-            transactions
-        FROM CustomerNonOverlappingWindows
-        WHERE all_unique_transactions = TRUE
-        ORDER BY customer_id, first_transaction_time
+            sp.customer_id,
+            c.customer_name,
+            c.email,
+            sp.transaction_count,
+            sp.total_amount,
+            sp.first_transaction_time,
+            sp.first_transaction,
+            sp.last_transaction
+        FROM SuspiciousPatterns sp
+        JOIN (
+            SELECT DISTINCT customer_id, customer_name, email
+            FROM `amlproject-458804.aml_data.customers`
+        ) c ON sp.customer_id = c.customer_id
+        ORDER BY sp.customer_id, sp.first_transaction_time
     """
     
     job_config = bigquery.QueryJobConfig(
@@ -179,7 +195,6 @@ def detect_frequent_small_transactions(
         ]
     )
 
-    
     # Execute the query
     query_job = client.query(query, job_config=job_config)
     results = query_job.result()
@@ -189,17 +204,16 @@ def detect_frequent_small_transactions(
     for row in results:
         pattern = {
             'customer_id': row.customer_id,
+            'customer_name': row.customer_name,
+            'email': row.email,
             'transaction_count': row.transaction_count,
             'total_amount': row.total_amount,
             'first_transaction_date': row.first_transaction.isoformat(),
             'last_transaction_date': row.last_transaction.isoformat(),
         }
         
-        # Extract the transactions array
-        
         suspicious_patterns.append(pattern)
     print("----------------------frequent------------------------")
     print(f"Found {len(suspicious_patterns)} suspicious frequent transaction patterns")
     print(suspicious_patterns)
     return suspicious_patterns
- 

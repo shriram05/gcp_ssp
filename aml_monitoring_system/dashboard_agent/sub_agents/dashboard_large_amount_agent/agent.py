@@ -25,7 +25,9 @@ Without any input from the user, your task is to retrieve and analyze all transa
 
 1. Use the `large_amount_tool` to detect large transactions for all customers.
 2. Aggregate and report:
-   - Each customer’s ID.
+   - Each customer's ID.
+   - Each customer's name.
+   - Each customer's email.
    - The number of large transactions made by that customer.
 
 ## Data Handling Requirements (STRICT)
@@ -37,7 +39,7 @@ Without any input from the user, your task is to retrieve and analyze all transa
 ## Output Format
 
 - Render the output in a **table format** using the following columns:
-  - `Customer ID`, `Transaction Count`
+  - `Customer ID`, `Customer Name`, `Email`, `Large Transaction Counts`
 - Format the table clearly with headers and rows.
 
 

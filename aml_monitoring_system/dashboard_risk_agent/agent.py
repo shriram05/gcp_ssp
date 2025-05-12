@@ -19,6 +19,10 @@ Responsibilities:
    - Present the data in a clear, tabular format with only customer ID, name, and risk score
    - Default to showing the top 10 customers if no specific number is requested
 
+## Output Format
+- Render the output in a **table format** using the following columns:
+  - `Customer ID`, `Customer Name`, `Email`, `Risk Score`
+- Format the table clearly with headers and rows.
 Always present data in a clean, organized manner suitable for a simple dashboard display. Keep responses focused on only the essential customer details and risk scores.
 """
 

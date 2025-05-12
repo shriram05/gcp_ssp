@@ -32,6 +32,7 @@ def get_top_risk_customers(limit: int = 10, min_score: Optional[int] = None,
     SELECT 
         customer_id,
         customer_name,
+        email,
         risk_score,
         ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY risk_score DESC) AS rn
     FROM 
@@ -41,6 +42,7 @@ def get_top_risk_customers(limit: int = 10, min_score: Optional[int] = None,
 SELECT 
     customer_id,
     customer_name,
+    email,
     risk_score
 FROM 
     ranked_customers
@@ -60,6 +62,7 @@ LIMIT {limit}
         customers.append({
             'customer_id': row.customer_id,
             'customer_name': row.customer_name,
+            'email':row.email,
             'risk_score': row.risk_score
         })
     

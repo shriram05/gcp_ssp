@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Create FunctionTools
-large_amount_tool = FunctionTool(detect_multiple_location_transactions)
+multiple_location_tool = FunctionTool(detect_multiple_location_transactions)
 PROMPT = """
 # Multiple Location Transaction Detector Agent
 
@@ -35,13 +35,13 @@ Use the tool `multiple_location_tool` to identify customers who:
 - ALWAYS PRESERVE the COMPLETE OUTPUT STRUCTURE of the tool.
 - DO NOT OMIT or REFORMAT any part of the tool's responses.
 - INCLUDE **ALL FIELDS** exactly as returned:
-  - `customer_id`, `transaction_ids`, `locations`, `start_time`, `end_time`, and `risk_type`
+  - `customer_id`, `customer_name`, `email`, `location_count`, `start_time`, `end_time`
 - NEVER summarize, rename, or infer new fields unless explicitly instructed.
 
 ## Output Format
 
 - Render the output in a **table format** using the following columns:
-  - `Customer ID`, `Start Time`, `End Time`, `Location Count`
+  - `Customer ID`, `Customer Name`, `Email`, `Start Time`, `End Time`, `Location Count`
 - Format the table clearly with headers and rows.
 
 Strictly follow the instructions. Any deviation from the above data handling or output structure is incorrect.
@@ -51,6 +51,6 @@ dashboard_multiple_location_agent = Agent(
     name="dashboard_multiple_location_agent",
     model="gemini-2.0-flash",
     description="Collects and analyzes transaction data to identify suspicious patterns especially for multiple location transactions frequently.",
-    tools=[large_amount_tool],
+    tools=[multiple_location_tool],
     instruction=PROMPT,
 )
