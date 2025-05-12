@@ -55,5 +55,6 @@ data_collector_agent = Agent(
     model="gemini-2.0-flash",
     description="Collects and analyzes transaction data to identify suspicious patterns.",
     tools=[large_amount_tool, frequent_transaction_tool, multiple_location_tool],
-    instruction=PROMPT
+    instruction=PROMPT,
+    output_key="datacollectoroutput"
 )
