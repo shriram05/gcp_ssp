@@ -35,7 +35,7 @@ Without any input from the user, your task is to retrieve and analyze all transa
 - You MUST preserve the complete structure returned by the tool.
 - DO NOT summarize individual transactions; only include the **count per customer** based on raw tool output.
 - DO NOT take any input from the user.
-
+- The default threshold amount to be used is 1000
 ## Output Format
 
 - Render the output in a **table format** using the following columns:

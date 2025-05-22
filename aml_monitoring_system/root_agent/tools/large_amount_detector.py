@@ -3,7 +3,7 @@ from google.cloud import bigquery
 from dotenv import load_dotenv
 load_dotenv()
 
-def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1000.00) -> List[Dict]:
+def detect_large_amount_transactions(customer_id: str) -> List[Dict]:
     """
     Detects transactions with amounts larger than the specified threshold.
 
@@ -33,12 +33,11 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1
                 `amlproject-458804.aml_data.transactions`
             WHERE 
                 (customer_id_sender = @customer_id OR customer_id_receiver = @customer_id)
-                AND amount > @threshold
+                AND amount > 1000
         """
         job_config = bigquery.QueryJobConfig(
             query_parameters=[
-                bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id),
-                bigquery.ScalarQueryParameter("threshold", "FLOAT", threshold),
+                bigquery.ScalarQueryParameter("customer_id", "STRING", customer_id)
             ]
         )
     else:
@@ -54,14 +53,8 @@ def detect_large_amount_transactions(customer_id: str = "", threshold: float = 1
             FROM 
                 `amlproject-458804.aml_data.transactions`
             WHERE 
-                amount > @threshold
+                amount > 1000
         """
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("threshold", "FLOAT", threshold),
-            ]
-        )
-
     query_job = client.query(query, job_config=job_config)
     results = query_job.result()
 

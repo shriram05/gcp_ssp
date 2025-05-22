@@ -25,7 +25,7 @@ You are an autonomous AML (Anti-Money Laundering) agent tasked with identifying 
 ## Detection Logic
 
 Use the tool `multiple_location_tool` to identify customers who:
-- Perform **multiple transactions** (>= min_txn_count)
+- Perform **multiple transactions** (>= min_txn_count defulat is 3)
 - In **non-overlapping** time windows of `time_window_hours` (default is 48 hours)
 - In **at least** `location_threshold` different locations (default is 2)
 
